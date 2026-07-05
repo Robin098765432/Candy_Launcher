@@ -27,7 +27,7 @@ static esp_err_t capture_handler(httpd_req_t *req) {
 
 static esp_err_t command_handler(httpd_req_t *req) {
   char buffer[100];//makes a buffer for message
-  int ret = httpd_req_recv(req, StreamBufferHandle_t, min((int)req->content_len, 99));//feches message
+  int ret = httpd_req_recv(req, buffer, min((int)req->content_len, 99)); //feches message
   if (ret <= 0) {// error check
     httpd_resp_send_500(req);
     return ESP_FAIL;
@@ -39,12 +39,12 @@ static esp_err_t command_handler(httpd_req_t *req) {
   Serial.println(command);
 
   if (command == "FIRE") {
-    httpd_resp_send(req, "FIRE_OK", HTTPD_RESP_USE_UNKNOWN_LEN);
+    httpd_resp_send(req, "FIRE_OK", HTTPD_RESP_USE_STRLEN);
   } else if (command == "FLASH_OFF") {
     digitalWrite(LED_GPIO_NUM, LOW);
-    httpd_resp_send(req, "LED_OFF", HTTPD_RESP_USE_UNKNOWN_LEN);
+    httpd_resp_send(req, "LED_OFF", HTTPD_RESP_USE_STRLEN);
   } else {
-    httpd_resp_send(req, "UNKNOWN_COMMAND", HTTPD_RESP_USE_UNKNOWN_LEN);
+    httpd_resp_send(req, "UNKNOWN_COMMAND", HTTPD_RESP_USE_STRLEN);
   }
   return ESP_OK;
 }
