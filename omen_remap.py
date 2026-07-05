@@ -38,7 +38,7 @@ def capture_image():
 
 while True:
     for p in psutil.process_iter(['pid', 'name']):
-        name = (p.info['name'] or "").lower()
+        name = (p.info['name'] or "").lower() 
         pid = p.info['pid'] 
 
         if "hp.omen.omencommandcenter" in name:
