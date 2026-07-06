@@ -22,7 +22,7 @@ static esp_err_t capture_handler(httpd_req_t *req) {
   }
 
   httpd_resp_set_type(req, "image/jpeg");
-  \
+  
   esp_err_t res = httpd_resp_send(req, (const char *)fb->buf, fb->len);
   
   esp_camera_fb_return(fb);
@@ -72,6 +72,7 @@ void startCameraServer() {
 void setup() {
   Serial.begin(115200);
   pinMode(LED_GPIO_NUM, OUTPUT);
+  delay(500);//power stabilise
 
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
@@ -99,7 +100,12 @@ void setup() {
   config.jpeg_quality = 12;
   config.fb_count = 1;
 
-  if (esp_camera_init(&config) != ESP_OK) return;
+  esp_err_t err = esp_camera_init(&config);
+  if (err != ESP_OK) {
+    Serial.printf("Camera init failed with error 0x%x. Retrying loop...\n", err);
+    delay(500);
+    ESP.restart(); // Forces the board to automatically reset itself instead of hanging!
+  }
 
   if (!WiFi.config(local_IP, gateway, subnet)) {
   Serial.println("STA Failed to configure");

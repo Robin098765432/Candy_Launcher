@@ -13,6 +13,9 @@ ESP32_IP = "192.168.0.120"
 CAPTURE_URL = "http://192.168.0.120/capture"
 COMMAND_URL = "http://192.168.0.120/send_command"
 
+face_classifier = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+mouth_classifier = cv2.CascadeClassifier("haarcascade_mcs_mouth.xml")
+
 def popup():
     root = tk.Tk()
     root.title("OMEN Triggered")
@@ -61,31 +64,36 @@ while True:
 
                             gray_image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-                            face_classifier = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-                            mouth_classifier = cv2.CascadeClassifier("haarcascade_mcs_mouth.xml")
-
                             face = face_classifier.detectMultiScale(gray_image, scaleFactor=1.1, minNeighbors=5, minSize=(40, 40))
 
                             if face is not None and len(face) > 0:
                                 
                                 closest_face = min(face, key=lambda b: abs((b[0] + (b[2] // 2)) - SCREEN_CENTER_X))
     
-                                x, y, w, h = closest_face
+                                face_x, face_y, face_w, face_h = closest_face
 
-                                face_cropped_gray = gray_image[y:y+h, x:x+w]
+                                face_cropped_gray = gray_image[face_y:face_y+face_h, face_x:face_x+face_w]
+                                lower_face = face_cropped_gray[face_h // 2:, :]
 
-                                mouth = mouth_classifier.detectMultiScale(face_cropped_gray, scaleFactor=1.1, minNeighbors=15, minSize=(15, 15))
-    
+                                mouth = mouth_classifier.detectMultiScale(lower_face, scaleFactor=1.1, minNeighbors=15, minSize=(20, 20))
+
                                 if len(mouth) > 0:
+                                    #lowest mouth
                                     mouth_box = max(mouth, key=lambda b: b[1])
-                                    mx, my, mw, mh = mouth_box
-        
-                                    target_x = x + mx + (mw // 2)
-                                    target_y = y + my + (mh // 2)
-        
+
+                                     
+                                    mouth_x, mouth_y, mouth_w, mouth_h = mouth_box
+                                    mouth_y += face_h // 2
+
+                                    target_x = face_x + mouth_x + (mouth_w // 2)
+                                    target_y = face_y + mouth_y + (mouth_h // 2)
+
                                     print(f"Mouth detected at absolute coordinates: ({target_x}, {target_y})")
-                                    for (x, y, w, h) in mouth:
-                                        cv2.rectangle(gray_image, (x, y), (x + w, y + h), (0, 255, 0), 4)
+
+                                    cv2.rectangle(gray_image,(face_x + mouth_x, face_y + mouth_y),(face_x + mouth_x + mouth_w, face_y + mouth_y + mouth_h),(0, 255, 0),2)
+
+                                    cv2.circle(gray_image, (target_x, target_y), 4, (255, 255, 255), -1)
+
                                     cv2.imshow("Target Spotted", gray_image)
                                     cv2.waitKey(1)
 
