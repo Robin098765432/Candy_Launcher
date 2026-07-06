@@ -7,6 +7,10 @@
 const char* ssid = "Jojanneke en Linda 2";
 const char* password = "C00kiemonster!!";
 
+IPAddress local_IP(192, 168, 0, 120);
+IPAddress gateway(192, 168, 0, 1);
+IPAddress subnet(255, 255, 0, 0);
+
 httpd_handle_t camera_httpd = NULL;
 
 static esp_err_t capture_handler(httpd_req_t *req) {
@@ -43,6 +47,9 @@ static esp_err_t command_handler(httpd_req_t *req) {
   } else if (command == "FLASH_OFF") {
     digitalWrite(LED_GPIO_NUM, LOW);
     httpd_resp_send(req, "LED_OFF", HTTPD_RESP_USE_STRLEN);
+  } else if (command == "FLASH_ON") {
+    digitalWrite(LED_GPIO_NUM, HIGH);
+    httpd_resp_send(req, "LED_ON", HTTPD_RESP_USE_STRLEN);
   } else {
     httpd_resp_send(req, "UNKNOWN_COMMAND", HTTPD_RESP_USE_STRLEN);
   }
@@ -94,8 +101,16 @@ void setup() {
 
   if (esp_camera_init(&config) != ESP_OK) return;
 
+  if (!WiFi.config(local_IP, gateway, subnet)) {
+  Serial.println("STA Failed to configure");
+  }
+
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) { delay(500); }
+
+  Serial.println("\nConnected to Wi-Fi!");
+  Serial.print("ESP32 IP Address: ");
+  Serial.println(WiFi.localIP());
   
   startCameraServer();
 }

@@ -7,11 +7,11 @@ import cv2
 import numpy as np
 
 seen = set()
-
+i = 1
 SCREEN_CENTER_X = 640 // 2
-ESP32_IP = "192.168.0.107"  
-CAPTURE_URL = "http://192.168.0.107/capture"
-COMMAND_URL = "http://192.168.0.107/send_command"
+ESP32_IP = "192.168.0.120"  
+CAPTURE_URL = "http://192.168.0.120/capture"
+COMMAND_URL = "http://192.168.0.120/send_command"
 
 def popup():
     root = tk.Tk()
@@ -53,15 +53,16 @@ while True:
                 result = sent_command("FIRE")
                 if result == "FIRE_OK":
                     while True:
+                        
 
-                        frame = cv2.imread(capture_image())
+                        frame = capture_image()
 
                         if frame is not None:
 
                             gray_image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
                             face_classifier = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-                            mouth_classifier = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_mcs_mouth.xml')
+                            mouth_classifier = cv2.CascadeClassifier("haarcascade_mcs_mouth.xml")
 
                             face = face_classifier.detectMultiScale(gray_image, scaleFactor=1.1, minNeighbors=5, minSize=(40, 40))
 
@@ -83,11 +84,26 @@ while True:
                                     target_y = y + my + (mh // 2)
         
                                     print(f"Mouth detected at absolute coordinates: ({target_x}, {target_y})")
+                                    for (x, y, w, h) in mouth:
+                                        cv2.rectangle(gray_image, (x, y), (x + w, y + h), (0, 255, 0), 4)
+                                    cv2.imshow("Target Spotted", gray_image)
+                                    cv2.waitKey(1)
+
+                                    if i==1:
+                                        result = sent_command("FLASH_ON")
+                                        print(result)
+                                        i=0
+                                    else:
+                                        result = sent_command("FLASH_OFF")
+                                        print(result)
     
 
 
 
-                                # inverse kinematics calculations here...
+                                    # inverse kinematics calculations here...
+
+                                else:
+                                    print("Mouth not detected within the face. Retrying...")
 
 
                                 
@@ -102,7 +118,7 @@ while True:
                 else:
                     print(f"Failed to send FIRE command. ESP32 replied: {result}")
 
-                Thread(target=popup).start()
+                
 
 
     seen = {x for x in seen if psutil.pid_exists(x)}
