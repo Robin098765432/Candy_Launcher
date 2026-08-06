@@ -8,6 +8,15 @@ import numpy as np
 
 seen = set()
 i = 1
+
+Servo1 = [25.82, -64.80, -17.28]
+Servo2 = [2.06, -64.80, 31.00]
+Servo3 = [-27.88, -64.80, -13.72]
+Plane_normal = [0.0, 1.0, 0.0]
+Distance = 1200
+focal_length = 543
+image_center_x = 320
+image_center_y = 240
 SCREEN_CENTER_X = 640 // 2
 ESP32_IP = "192.168.0.120"  
 CAPTURE_URL = "http://192.168.0.120/capture"
@@ -95,16 +104,7 @@ while True:
                                     cv2.circle(gray_image, (target_x, target_y), 4, (255, 255, 255), -1)
 
                                     cv2.imshow("Target Spotted", gray_image)
-                                    cv2.waitKey(1)
-
-                                    if i==1:
-                                        result = sent_command("FLASH_ON")
-                                        print(result)
-                                        i=0
-                                    else:
-                                        result = sent_command("FLASH_OFF")
-                                        print(result)
-    
+                                    cv2.waitKey(1)  
 
 
 
