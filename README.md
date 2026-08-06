@@ -57,7 +57,7 @@ The sketch also expects a `board_config.h` file for the camera pin definitions.
 
 > **Note:** As I said, this is still an early prototype. Movement, inverse kinematics, and launching actual candy are not functional yet!
 >
-> The repo and README will be updated soon once I test more parts and find some time to write some code.
+> The repo and README will be updated soon once I test more parts and find some time to write some code.(eg assembly instructions added once i assemble it myself;))
 
 ## CAD
 * **CAD Model:** You can check out the design here: [Onshape CAD Document](https://cad.onshape.com/documents/5612db996652adceb7ce30aa/w/0ed39498cd0338a43115c5e1/e/3f8492fab05c535707b619d7)
