@@ -5,14 +5,58 @@ Hi, this is an unfinished version 1 of the candy launcher, currently only tested
 ## Why I Made It
 I wanted to build a fun, automated way to launch candy using computer vision, combining hardware (an ESP32 and mechanical parts) with a custom software setup.
 
+## Requirements
+
+### Python
+
+The python script was written with Python 3 and currently only tested on Windows.
+
+Install the required python libraries:
+
+```bash
+pip install psutil requests opencv-python numpy
+```
+
+### OpenCV
+
+OpenCV already includes:
+
+- `haarcascade_frontalface_default.xml`
+
+You still need to download:
+
+- `haarcascade_mcs_mouth.xml`
+
+and place it in the same folder as the python script.
+
+### ESP32
+
+This project uses an AI-Thinker ESP32-CAM.
+
+Install the ESP32 by Espressif Systems board package through the Arduino IDE Boards Manager.
+
+The following libraries are already included with the board package, so you don't have to install anything extra:
+
+- WiFi
+- esp_camera
+- esp_http_server
+
+The sketch also expects a `board_config.h` file for the camera pin definitions.
+
 ## How to Use It
+
 1. Your laptop must have the physical OMEN Gaming Hub key on the keyboard.
-2. Install the Python script and set it to run on startup in Windows.
-3. Upload the ESP code to the AI-Thinker ESP32 board.
-4. Press the OMEN key to enter a livestream mode where the python script shows a box around your mouth.
+2. Install Python and the required libraries shown above.
+3. Download `haarcascade_mcs_mouth.xml` and put it next to the python script.
+4. Install the ESP32 board package in the Arduino IDE.
+5. Upload the ESP code to the AI-Thinker ESP32 board.
+6. Change the Wi-Fi name and password in the ESP sketch.
+7. Set the python script to run on Windows startup.
+8. Press the OMEN key to enter livestream mode where the python script shows a box around your mouth.
 
 > **Note:** As I said, this is still an early prototype. Movement, inverse kinematics, and launching actual candy are not functional yet!
-> repo and readme will be updated soon once i test more parts and find some time to write some code.
+>
+> The repo and README will be updated soon once I test more parts and find some time to write some code.
 
 ## CAD
 * **CAD Model:** You can check out the design here: [Onshape CAD Document](https://cad.onshape.com/documents/5612db996652adceb7ce30aa/w/0ed39498cd0338a43115c5e1/e/3f8492fab05c535707b619d7)
