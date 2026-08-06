@@ -1,4 +1,5 @@
 # Candy Launcher (v1 Prototype)
+<img width="881" height="250" alt="Screenshot 2026-07-14 200553" src="https://github.com/user-attachments/assets/2128f9b7-e7f5-411d-afde-c022e2bd4ecc" />
 
 Hi, this is an unfinished version 1 of the candy launcher, currently only tested on my laptop (HP Victus). 
 
