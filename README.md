@@ -57,10 +57,31 @@ The sketch also expects a `board_config.h` file for the camera pin definitions.
 
 > **Note:** As I said, this is still an early prototype. Movement, inverse kinematics, and launching actual candy are not functional yet!
 >
-> The repo and README will be updated soon once I test more parts and find some time to write some code.(eg assembly instructions added once i assemble it myself;))
+> The repo and README will be updated soon once I test more parts and find some time to write some code.
 
 ## CAD
 * **CAD Model:** You can check out the design here: [Onshape CAD Document](https://cad.onshape.com/documents/5612db996652adceb7ce30aa/w/0ed39498cd0338a43115c5e1/e/3f8492fab05c535707b619d7)
+
+## Assembly and explanation
+> Assembly steps are not set in stone and there are multiple ways to Rome, this is just how i did it. :)
+1. mill the pcb out of 1.6mm copper clad, 3d print all the files in the stl folder(make sure the tube and flywheels are printed in tpu)(also make sure that the lid and container are paused at the correct layer and insert the magnets)
+2. insert heated inserts in all the holes in the base
+3. mount the servos horns and servos as shown in the picture and bolt them in place
+<img width="660" height="461" alt="image" src="https://github.com/user-attachments/assets/b5a09730-dc68-451b-8244-07dd6c02d9c8" />
+>the 3 servos will be used in sync to tilt the platform towrds your mount
+4. attach the servo horns to the push rods using one nail a pair, and then do the same with the chamfered side of the pushrods to the platform
+> the chamfered side is a very simple variation on a ball joint, optimised for easy printing
+5. mount the pcb with washers as spacers to the platform as shown below. also mount the slide(needs heated inserts first), also mount the motors and the flywheels(all pressfits but can use some glue)
+<img width="514" height="475" alt="image" src="https://github.com/user-attachments/assets/19a69e88-240f-48f4-86c3-f4c50ccf0d88" />
+6. install some heated inserts in the container, and mount the cap, slider, servo and servo gear(servo with hot glue), also mount the small dc motor with hot glue in the recess in the cap. and screw the printed weight on the motor shaft
+<img width="607" height="438" alt="image" src="https://github.com/user-attachments/assets/cf15a9b6-bddf-493b-b331-f3adea3a98c7" />
+> make sure the servo gear is not installed when first turned on because the servo might jerk to 0 on power on
+>the servo and motor work together to shake the skittles and feed them one at a time
+7. snap the tube into the cap and the slide to connect the 2 assemblies and mount on a wall with screws.
+8. DONE!!
+
+## Wiring
+<img width="660" height="461" alt="Screenshot 2026-08-07 234058" src="https://github.com/user-attachments/assets/fb344715-8e43-4729-81a5-1b2f5a0d404e" />
 
 ## BOM
 
