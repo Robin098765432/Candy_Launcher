@@ -104,7 +104,7 @@ void setup() {
   if (err != ESP_OK) {
     Serial.printf("Camera init failed with error 0x%x. Retrying loop...\n", err);
     delay(500);
-    ESP.restart(); // Forces the board to automatically reset itself instead of hanging!
+    ESP.restart(); // auto reset
   }
 
   if (!WiFi.config(local_IP, gateway, subnet)) {
