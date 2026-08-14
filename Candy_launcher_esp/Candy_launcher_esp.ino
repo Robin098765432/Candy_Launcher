@@ -4,8 +4,8 @@
 
 #include "board_config.h"
 
-const char* ssid = "Jojanneke en Linda 2";
-const char* password = "C00kiemonster!!";
+const char* ssid = "ssid";
+const char* password = "password";
 
 IPAddress local_IP(192, 168, 0, 120);
 IPAddress gateway(192, 168, 0, 1);
