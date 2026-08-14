@@ -1,7 +1,8 @@
+
 # Candy Launcher (v1 Prototype)
 <img width="881" height="250" alt="Screenshot 2026-07-14 200553" src="https://github.com/user-attachments/assets/2128f9b7-e7f5-411d-afde-c022e2bd4ecc" />
-
 Hi, this is an unfinished version 1 of the candy launcher, currently only tested on my laptop (HP Victus). 
+<img width="1304" height="1732" alt="IMG_20260814_225238179" src="https://github.com/user-attachments/assets/8db19167-d254-4f73-894c-c0dd02c68837" />
 
 ## Why I Made It
 I wanted to build a fun, automated way to launch candy using computer vision, combining hardware (an ESP32 and mechanical parts) with a custom software setup.
@@ -83,6 +84,8 @@ The sketch also expects a `board_config.h` file for the camera pin definitions.
 > 
 > the servo and motor work together to shake the skittles and feed them one at a time
 7. snap the tube into the cap and the slide to connect the 2 assemblies and mount on a wall with screws.
+<img width="1918" height="1444" alt="IMG_20260814_225249038" src="https://github.com/user-attachments/assets/dd104330-172c-4e08-a207-aa696636ec28" />
+
 8. DONE!!
 
 ## Wiring
