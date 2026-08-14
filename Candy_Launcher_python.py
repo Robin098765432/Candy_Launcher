@@ -111,12 +111,12 @@ while True:
                                     # inverse kinematics calculations here...
 
                                 else:
-                                    print("Mouth not detected within the face. Retrying...")
+                                    print("Mouth not detected within the face.")
 
 
                                 
                             else:
-                                print("Face detection failed. Retrying...")
+                                print("Face detection failed.")
 
                             
                         else:
