@@ -5,6 +5,7 @@ Servo servo4;
 
 const int SERVO4_PIN = 15;
 const int IO2_PIN = 2; 
+const int PWM_VALUE = 40;
 
 void setup() {
   
@@ -14,18 +15,15 @@ void setup() {
   servo4.attach(SERVO4_PIN, 500, 2500);
   servo4.write(0);
 
-  digitalWrite(IO2_PIN, HIGH);
-  delay(700);
+  analogWrite(IO2_PIN, PWM_VALUE);
+  delay(200);
   servo4.write(180);
-  delay(500);
-  digitalWrite(IO2_PIN, LOW);
+  delay(800);
+  analogWrite(IO2_PIN, 0);
   servo4.write(0);
   delay(700);
 }
 
 void loop() {
-
-  
-  
   delay(15); 
 }
