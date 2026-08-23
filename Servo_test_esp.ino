@@ -12,8 +12,8 @@ const int SERVO3_PIN = 14;
 const int SERVO4_PIN = 15;
 const int IO2_PIN = 2; 
 
-const int BIG_MIN_POS = 130;  
-const int BIG_MAX_POS = 165; 
+const int BIG_MIN_POS = 130;
+const int BIG_MAX_POS = 165;
 
 unsigned long lastServo4 = 0;
 bool servo4Position = false;

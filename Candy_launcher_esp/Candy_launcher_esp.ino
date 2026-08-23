@@ -1,11 +1,29 @@
 #include "esp_camera.h"
 #include <WiFi.h>
 #include "esp_http_server.h"
-
+#include <ESP32Servo.h>
+#include <math.h>
 #include "board_config.h"
 
-const char* ssid = "ssid";
-const char* password = "password";
+const char* ssid = "Jojanneke en Linda 2";
+const char* password = "C00kiemonster!!";
+
+Servo servo1;
+Servo servo2;
+Servo servo3;
+Servo servo4;
+
+
+const int SERVO1_PIN = 12;
+const int SERVO2_PIN = 13;
+const int SERVO3_PIN = 14;
+const int SERVO4_PIN = 15;
+const int IO2_PIN = 2; 
+const int PWM_VALUE = 255;
+
+float curr_servo1_angle = 165;
+float curr_servo2_angle = 165;
+float curr_servo3_angle = 165;
 
 IPAddress local_IP(192, 168, 0, 120);
 IPAddress gateway(192, 168, 0, 1);
@@ -43,18 +61,66 @@ static esp_err_t command_handler(httpd_req_t *req) {
   Serial.println(command);
 
   if (command == "FIRE") {
+
     httpd_resp_send(req, "FIRE_OK", HTTPD_RESP_USE_STRLEN);
+
   } else if (command == "FLASH_OFF") {
+
     digitalWrite(LED_GPIO_NUM, LOW);
     httpd_resp_send(req, "LED_OFF", HTTPD_RESP_USE_STRLEN);
+
   } else if (command == "FLASH_ON") {
+
     digitalWrite(LED_GPIO_NUM, HIGH);
     httpd_resp_send(req, "LED_ON", HTTPD_RESP_USE_STRLEN);
+
+  } else if (command.startsWith("SET_SERVO_ANGLES")) {
+
+    int first_value = command.indexOf(' ');
+    int second_value = command.indexOf(' ', first_value + 1);
+    int third_value = command.indexOf(' ', second_value + 1);
+
+    if (first_value != -1 && second_value != -1 && third_value != -1) {
+
+      float angle1 = command.substring(first_value + 1, second_value).toFloat();
+      float angle2 = command.substring(second_value + 1, third_value).toFloat();
+      float angle3 = command.substring(third_value + 1).toFloat();
+
+
+      if (abs(angle1 - curr_servo1_angle) < 2 && abs(angle2 - curr_servo2_angle) < 2 && abs(angle3 - curr_servo3_angle) < 2) {
+        httpd_resp_send(req, "FIRING", HTTPD_RESP_USE_STRLEN);
+        analogWrite(IO2_PIN, PWM_VALUE);
+        delay(300);
+        servo4.write(180);
+        delay(800);
+        servo4.write(0);
+        analogWrite(IO2_PIN, 0);
+      }
+      else {
+        servo1.write(angle1);
+      servo2.write(angle2);
+      servo3.write(angle3);
+
+      curr_servo1_angle = angle1;
+      curr_servo2_angle = angle2;
+      curr_servo3_angle = angle3;
+
+      httpd_resp_send(req, "SERVO_ANGLES_SET", HTTPD_RESP_USE_STRLEN);
+      }
+
+
+      
+
+    }
+
   } else {
+
     httpd_resp_send(req, "UNKNOWN_COMMAND", HTTPD_RESP_USE_STRLEN);
+
   }
+
   return ESP_OK;
-}
+  }
 
 void startCameraServer() {
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
@@ -73,6 +139,20 @@ void setup() {
   Serial.begin(115200);
   pinMode(LED_GPIO_NUM, OUTPUT);
   delay(500);//power stabilise
+  servo1.setPeriodHertz(50);
+  servo2.setPeriodHertz(50);
+  servo3.setPeriodHertz(50);
+  servo4.setPeriodHertz(50);
+  servo1.attach(SERVO1_PIN, 500, 2500);
+  servo2.attach(SERVO2_PIN, 500, 2500);
+  servo3.attach(SERVO3_PIN, 500, 2500);
+  servo4.attach(SERVO4_PIN, 1000, 2000);
+  pinMode(IO2_PIN, OUTPUT);
+  servo4.write(0);
+
+  servo1.write(curr_servo1_angle);
+  servo2.write(curr_servo2_angle);
+  servo3.write(curr_servo3_angle);
 
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
