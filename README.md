@@ -4,6 +4,9 @@
 Hi, this is an unfinished version 1 of the candy launcher, currently only tested on my laptop (HP Victus). 
 <img width="1304" height="1732" alt="IMG_20260814_225238179" src="https://github.com/user-attachments/assets/8db19167-d254-4f73-894c-c0dd02c68837" />
 
+link to video with more details:
+https://www.youtube.com/watch?v=WshQ-3ue9KE
+
 ## Why I Made It
 I wanted to build a fun, automated way to launch candy using computer vision, combining hardware (an ESP32 and mechanical parts) with a custom software setup.
 
