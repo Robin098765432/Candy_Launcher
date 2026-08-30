@@ -2,7 +2,6 @@
 #include <WiFi.h>
 #include "esp_http_server.h"
 #include <ESP32Servo.h>
-#include <math.h>
 #include "board_config.h"
 
 const char* ssid = "Jojanneke en Linda 2";
@@ -13,17 +12,23 @@ Servo servo2;
 Servo servo3;
 Servo servo4;
 
-
 const int SERVO1_PIN = 12;
 const int SERVO2_PIN = 13;
 const int SERVO3_PIN = 14;
 const int SERVO4_PIN = 15;
-const int IO2_PIN = 2; 
+
+const int IO2_PIN = 2;
 const int PWM_VALUE = 255;
 
 float curr_servo1_angle = 165;
 float curr_servo2_angle = 165;
 float curr_servo3_angle = 165;
+
+float target_servo1_angle = 165;
+float target_servo2_angle = 165;
+float target_servo3_angle = 165;
+
+bool servo_update_pending = false;
 
 IPAddress local_IP(192, 168, 0, 120);
 IPAddress gateway(192, 168, 0, 1);
@@ -31,132 +36,252 @@ IPAddress subnet(255, 255, 0, 0);
 
 httpd_handle_t camera_httpd = NULL;
 
+
+enum FireState {FIRE_IDLE, FIRE_MOTOR, FIRE_LAUNCH, FIRE_DONE};
+
+FireState fire_state = FIRE_IDLE;
+
+unsigned long fire_timer = 0;
+
+const unsigned long FIRE_MOTOR_TIME = 300;
+const unsigned long FIRE_LAUNCH_TIME = 800;
+
+
 static esp_err_t capture_handler(httpd_req_t *req) {
-  camera_fb_t * fb = esp_camera_fb_get();
-  if (!fb) {
-    Serial.println("Camera capture failed");
-    httpd_resp_send_500(req);
+  camera_fb_t *fb = esp_camera_fb_get();
+
+  if (!fb) {httpd_resp_send_500(req);
     return ESP_FAIL;
   }
 
   httpd_resp_set_type(req, "image/jpeg");
-  
+  httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+  httpd_resp_set_hdr(req, "Connection", "close");
+
   esp_err_t res = httpd_resp_send(req, (const char *)fb->buf, fb->len);
-  
+
   esp_camera_fb_return(fb);
+
   return res;
 }
 
-static esp_err_t command_handler(httpd_req_t *req) {
-  char buffer[100];//makes a buffer for message
-  int ret = httpd_req_recv(req, buffer, min((int)req->content_len, 99)); //feches message
-  if (ret <= 0) {// error check
-    httpd_resp_send_500(req);
-    return ESP_FAIL;
+
+bool readCommand(httpd_req_t *req, char *buffer, size_t buffer_size) {
+  if (req->content_len <= 0) {
+    return false;
   }
-  buffer[ret] = '\0';// sealing
+
+  if (req->content_len >= buffer_size) {
+    return false;
+  }
+
+  int ret = httpd_req_recv(req, buffer, buffer_size - 1);
+
+  if (ret <= 0) {
+    return false;
+  }
+
+  buffer[ret] = '\0';
+
+  return true;
+}
+
+
+
+static esp_err_t command_handler(httpd_req_t *req) {
+  char buffer[128];
+
+  if (!readCommand(req, buffer, sizeof(buffer))) {
+    httpd_resp_send(req, "INVALID_COMMAND", HTTPD_RESP_USE_STRLEN);
+    return ESP_OK;
+  }
 
   String command = String(buffer);
-  Serial.print("Text Command Received: ");
-  Serial.println(command);
+  command.trim();
+
 
   if (command == "FIRE") {
 
-    httpd_resp_send(req, "FIRE_OK", HTTPD_RESP_USE_STRLEN);
-
-  } else if (command == "FLASH_OFF") {
-
-    digitalWrite(LED_GPIO_NUM, LOW);
-    httpd_resp_send(req, "LED_OFF", HTTPD_RESP_USE_STRLEN);
-
-  } else if (command == "FLASH_ON") {
-
-    digitalWrite(LED_GPIO_NUM, HIGH);
-    httpd_resp_send(req, "LED_ON", HTTPD_RESP_USE_STRLEN);
-
-  } else if (command.startsWith("SET_SERVO_ANGLES")) {
-
-    int first_value = command.indexOf(' ');
-    int second_value = command.indexOf(' ', first_value + 1);
-    int third_value = command.indexOf(' ', second_value + 1);
-
-    if (first_value != -1 && second_value != -1 && third_value != -1) {
-
-      float angle1 = command.substring(first_value + 1, second_value).toFloat();
-      float angle2 = command.substring(second_value + 1, third_value).toFloat();
-      float angle3 = command.substring(third_value + 1).toFloat();
-
-
-      if (abs(angle1 - curr_servo1_angle) < 2 && abs(angle2 - curr_servo2_angle) < 2 && abs(angle3 - curr_servo3_angle) < 2) {
-        httpd_resp_send(req, "FIRING", HTTPD_RESP_USE_STRLEN);
-        analogWrite(IO2_PIN, PWM_VALUE);
-        delay(300);
-        servo4.write(180);
-        delay(800);
-        servo4.write(0);
-        analogWrite(IO2_PIN, 0);
-      }
-      else {
-        servo1.write(angle1);
-      servo2.write(angle2);
-      servo3.write(angle3);
-
-      curr_servo1_angle = angle1;
-      curr_servo2_angle = angle2;
-      curr_servo3_angle = angle3;
-
-      httpd_resp_send(req, "SERVO_ANGLES_SET", HTTPD_RESP_USE_STRLEN);
-      }
-
-
-      
-
+    if (fire_state != FIRE_IDLE) {
+      httpd_resp_send(req, "FIRE_BUSY", HTTPD_RESP_USE_STRLEN);
+      return ESP_OK;
     }
 
-  } else {
+    fire_state = FIRE_MOTOR;
+    fire_timer = millis();
 
-    httpd_resp_send(req, "UNKNOWN_COMMAND", HTTPD_RESP_USE_STRLEN);
+    digitalWrite(IO2_PIN, HIGH);
 
+    httpd_resp_send(req, "FIRE_OK", HTTPD_RESP_USE_STRLEN);
+
+    return ESP_OK;
   }
+
+
+  if (command == "FLASH_OFF") {
+
+    digitalWrite(LED_GPIO_NUM, LOW);
+
+    httpd_resp_send(req, "LED_OFF", HTTPD_RESP_USE_STRLEN);
+
+    return ESP_OK;
+  }
+
+
+  if (command == "FLASH_ON") {
+
+    digitalWrite(LED_GPIO_NUM, HIGH);
+
+    httpd_resp_send(req, "LED_ON", HTTPD_RESP_USE_STRLEN);
+
+    return ESP_OK;
+  }
+
+
+
+  if (command.startsWith("SET_SERVO_ANGLES")) {
+
+    int first_space = command.indexOf(' ');
+    int second_space = command.indexOf(' ', first_space + 1);
+    int third_space = command.indexOf(' ', second_space + 1);
+
+    if (first_space == -1 || second_space == -1 || third_space == -1) {
+      httpd_resp_send( req, "INVALID_SERVO_COMMAND", HTTPD_RESP_USE_STRLEN);
+
+      return ESP_OK;
+    }
+
+    float angle1 = command.substring( first_space + 1, second_space).toFloat();
+
+    float angle2 = command.substring( second_space + 1, third_space).toFloat();
+
+    float angle3 = command.substring( third_space + 1).toFloat();
+
+    if (angle1 < 135 || angle1 > 165 || angle2 < 135 || angle2 > 165 || angle3 < 135 || angle3 > 165) {
+      httpd_resp_send(req, "INVALID_SERVO_ANGLE", HTTPD_RESP_USE_STRLEN);
+
+      return ESP_OK;
+    }
+
+    target_servo1_angle = angle1;
+    target_servo2_angle = angle2;
+    target_servo3_angle = angle3;
+
+    servo_update_pending = true;
+
+    httpd_resp_send( req, "SERVO_ANGLES_SET", HTTPD_RESP_USE_STRLEN);
+
+    return ESP_OK;
+  }
+
+
+  httpd_resp_send( req, "UNKNOWN_COMMAND", HTTPD_RESP_USE_STRLEN);
 
   return ESP_OK;
-  }
+}
 
 void startCameraServer() {
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-  config.server_port = 80;
 
-  httpd_uri_t capture_uri = { .uri = "/capture", .method = HTTP_GET, .handler = capture_handler, .user_ctx = NULL };
-  httpd_uri_t command_uri = { .uri = "/send_command", .method = HTTP_POST, .handler = command_handler, .user_ctx = NULL };
+  config.server_port = 80;
+  config.max_open_sockets = 4;
+  config.lru_purge_enable = true;
+
+  httpd_uri_t capture_uri = {.uri = "/capture", .method = HTTP_GET, .handler = capture_handler, .user_ctx = NULL};
+
+  httpd_uri_t command_uri = {.uri = "/send_command", .method = HTTP_POST, .handler = command_handler, .user_ctx = NULL};
 
   if (httpd_start(&camera_httpd, &config) == ESP_OK) {
+
     httpd_register_uri_handler(camera_httpd, &capture_uri);
-    httpd_register_uri_handler(camera_httpd, &command_uri);
+
+    httpd_register_uri_handler( camera_httpd, &command_uri);
   }
 }
 
-void setup() {
-  Serial.begin(115200);
-  pinMode(LED_GPIO_NUM, OUTPUT);
-  delay(500);//power stabilise
-  servo1.setPeriodHertz(50);
-  servo2.setPeriodHertz(50);
-  servo3.setPeriodHertz(50);
-  servo4.setPeriodHertz(50);
-  servo1.attach(SERVO1_PIN, 500, 2500);
-  servo2.attach(SERVO2_PIN, 500, 2500);
-  servo3.attach(SERVO3_PIN, 500, 2500);
-  servo4.attach(SERVO4_PIN, 1000, 2000);
-  pinMode(IO2_PIN, OUTPUT);
-  servo4.write(0);
 
-  servo1.write(curr_servo1_angle);
-  servo2.write(curr_servo2_angle);
-  servo3.write(curr_servo3_angle);
+void processServoMovement() {
 
-  camera_config_t config;
+  if (!servo_update_pending) {
+    return;
+  }
+
+  servo_update_pending = false;
+
+  float angle1 = target_servo1_angle;
+  float angle2 = target_servo2_angle;
+  float angle3 = target_servo3_angle;
+
+  servo1.write(angle1);
+  delay(50);
+
+  servo2.write(angle2);
+  delay(50);
+
+  servo3.write(angle3);
+
+  curr_servo1_angle = angle1;
+  curr_servo2_angle = angle2;
+  curr_servo3_angle = angle3;
+}
+
+
+void processFire() {
+
+  if (fire_state == FIRE_IDLE) {
+    return;
+  }
+
+  unsigned long elapsed = millis() - fire_timer;
+
+
+  if (fire_state == FIRE_MOTOR) {
+
+    if (elapsed >= FIRE_MOTOR_TIME) {
+
+      servo4.write(180);
+
+      fire_state = FIRE_LAUNCH;
+      fire_timer = millis();
+    }
+
+    return;
+  }
+
+
+  if (fire_state == FIRE_LAUNCH) {
+
+    if (elapsed >= FIRE_LAUNCH_TIME) {
+
+      servo4.write(0);
+      digitalWrite(IO2_PIN, LOW);
+
+      fire_state = FIRE_DONE;
+      fire_timer = millis();
+    }
+
+    return;
+  }
+
+
+  if (fire_state == FIRE_DONE) {
+
+    if (elapsed >= 200) {
+      fire_state = FIRE_IDLE;
+    }
+
+    return;
+  }
+}
+
+
+bool initializeCamera() {
+
+  camera_config_t config = {};
+
   config.ledc_channel = LEDC_CHANNEL_0;
   config.ledc_timer = LEDC_TIMER_0;
+
   config.pin_d0 = Y2_GPIO_NUM;
   config.pin_d1 = Y3_GPIO_NUM;
   config.pin_d2 = Y4_GPIO_NUM;
@@ -165,42 +290,105 @@ void setup() {
   config.pin_d5 = Y7_GPIO_NUM;
   config.pin_d6 = Y8_GPIO_NUM;
   config.pin_d7 = Y9_GPIO_NUM;
+
   config.pin_xclk = XCLK_GPIO_NUM;
   config.pin_pclk = PCLK_GPIO_NUM;
   config.pin_vsync = VSYNC_GPIO_NUM;
   config.pin_href = HREF_GPIO_NUM;
+
   config.pin_sscb_sda = SIOD_GPIO_NUM;
   config.pin_sscb_scl = SIOC_GPIO_NUM;
+
   config.pin_pwdn = PWDN_GPIO_NUM;
   config.pin_reset = RESET_GPIO_NUM;
+
   config.xclk_freq_hz = 20000000;
+
   config.pixel_format = PIXFORMAT_JPEG;
-  
-  config.frame_size = FRAMESIZE_VGA; 
+
+  config.frame_size = FRAMESIZE_VGA;
   config.jpeg_quality = 12;
-  config.fb_count = 1;
+
+  if (psramFound()) {
+    config.fb_count = 2;
+    config.fb_location = CAMERA_FB_IN_PSRAM;
+    config.grab_mode = CAMERA_GRAB_LATEST;
+  }
+  else {
+    config.fb_count = 1;
+  }
 
   esp_err_t err = esp_camera_init(&config);
+
   if (err != ESP_OK) {
-    Serial.printf("Camera init failed with error 0x%x. Retrying loop...\n", err);
-    delay(500);
-    ESP.restart(); // auto reset
+    return false;
+  }
+
+  return true;
+}
+
+void setup() {
+
+  Serial.begin(115200);
+
+  delay(500);
+
+  pinMode(LED_GPIO_NUM, OUTPUT);
+  digitalWrite(LED_GPIO_NUM, LOW);
+
+  pinMode(IO2_PIN, OUTPUT);
+  digitalWrite(IO2_PIN, LOW);
+
+  ESP32PWM::allocateTimer(2);
+  ESP32PWM::allocateTimer(3);
+
+  servo1.setPeriodHertz(50);
+  servo2.setPeriodHertz(50);
+  servo3.setPeriodHertz(50);
+  servo4.setPeriodHertz(50);
+
+  servo1.attach(SERVO1_PIN, 1000, 2000);
+  servo2.attach(SERVO2_PIN, 1000, 2000);
+  servo3.attach(SERVO3_PIN, 1000, 2000);
+  servo4.attach(SERVO4_PIN, 1000, 2000);
+
+  servo1.write(curr_servo1_angle);
+  servo2.write(curr_servo2_angle);
+  servo3.write(curr_servo3_angle);
+  servo4.write(0);
+
+  delay(300);
+
+  if (!initializeCamera()) {
+    ESP.restart();
   }
 
   if (!WiFi.config(local_IP, gateway, subnet)) {
-  Serial.println("STA Failed to configure");
+    Serial.println("WiFi config failed");
   }
 
+  WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) { delay(500); }
 
-  Serial.println("\nConnected to Wi-Fi!");
-  Serial.print("ESP32 IP Address: ");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+  }
+
+  Serial.println("WiFi connected");
   Serial.println(WiFi.localIP());
-  
+
   startCameraServer();
 }
 
 void loop() {
-  delay(10000); 
+
+  processServoMovement();
+
+  processFire();
+
+  if (WiFi.status() != WL_CONNECTED) {
+    WiFi.reconnect();
+  }
+
+  delay(5);
 }
