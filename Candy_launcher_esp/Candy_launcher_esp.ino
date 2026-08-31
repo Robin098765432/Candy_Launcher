@@ -37,14 +37,7 @@ IPAddress subnet(255, 255, 0, 0);
 httpd_handle_t camera_httpd = NULL;
 
 
-enum FireState {FIRE_IDLE, FIRE_MOTOR, FIRE_LAUNCH, FIRE_DONE};
-
-FireState fire_state = FIRE_IDLE;
-
-unsigned long fire_timer = 0;
-
-const unsigned long FIRE_MOTOR_TIME = 300;
-const unsigned long FIRE_LAUNCH_TIME = 800;
+bool fire_requested = false;
 
 
 static esp_err_t capture_handler(httpd_req_t *req) {
@@ -101,19 +94,13 @@ static esp_err_t command_handler(httpd_req_t *req) {
 
 
   if (command == "FIRE") {
-
-    if (fire_state != FIRE_IDLE) {
+    if (fire_requested) {
       httpd_resp_send(req, "FIRE_BUSY", HTTPD_RESP_USE_STRLEN);
       return ESP_OK;
     }
 
-    fire_state = FIRE_MOTOR;
-    fire_timer = millis();
-
-    digitalWrite(IO2_PIN, HIGH);
-
+    fire_requested = true;
     httpd_resp_send(req, "FIRE_OK", HTTPD_RESP_USE_STRLEN);
-
     return ESP_OK;
   }
 
@@ -157,7 +144,7 @@ static esp_err_t command_handler(httpd_req_t *req) {
 
     float angle3 = command.substring( third_space + 1).toFloat();
 
-    if (angle1 < 135 || angle1 > 165 || angle2 < 135 || angle2 > 165 || angle3 < 135 || angle3 > 165) {
+    if (angle1 < 90 || angle1 > 165 || angle2 < 90 || angle2 > 165 || angle3 < 90 || angle3 > 165) {
       httpd_resp_send(req, "INVALID_SERVO_ANGLE", HTTPD_RESP_USE_STRLEN);
 
       return ESP_OK;
@@ -213,10 +200,8 @@ void processServoMovement() {
   float angle3 = target_servo3_angle;
 
   servo1.write(angle1);
-  delay(50);
 
   servo2.write(angle2);
-  delay(50);
 
   servo3.write(angle3);
 
@@ -227,53 +212,19 @@ void processServoMovement() {
 
 
 void processFire() {
-
-  if (fire_state == FIRE_IDLE) {
+  if (!fire_requested) {
     return;
   }
 
-  unsigned long elapsed = millis() - fire_timer;
+  ledcWrite(IO2_PIN, 155);
+  delay(1000);
+  servo4.write(180);
+  delay(1500);
+  servo4.write(0);
+  ledcWrite(IO2_PIN, 0);
 
-
-  if (fire_state == FIRE_MOTOR) {
-
-    if (elapsed >= FIRE_MOTOR_TIME) {
-
-      servo4.write(180);
-
-      fire_state = FIRE_LAUNCH;
-      fire_timer = millis();
-    }
-
-    return;
-  }
-
-
-  if (fire_state == FIRE_LAUNCH) {
-
-    if (elapsed >= FIRE_LAUNCH_TIME) {
-
-      servo4.write(0);
-      digitalWrite(IO2_PIN, LOW);
-
-      fire_state = FIRE_DONE;
-      fire_timer = millis();
-    }
-
-    return;
-  }
-
-
-  if (fire_state == FIRE_DONE) {
-
-    if (elapsed >= 200) {
-      fire_state = FIRE_IDLE;
-    }
-
-    return;
-  }
+  fire_requested = false;
 }
-
 
 bool initializeCamera() {
 
@@ -336,9 +287,10 @@ void setup() {
   pinMode(LED_GPIO_NUM, OUTPUT);
   digitalWrite(LED_GPIO_NUM, LOW);
 
-  pinMode(IO2_PIN, OUTPUT);
-  digitalWrite(IO2_PIN, LOW);
+  ledcAttach(IO2_PIN, 5000, 8);
+  ledcWrite(IO2_PIN, 0);
 
+  ESP32PWM::allocateTimer(1);
   ESP32PWM::allocateTimer(2);
   ESP32PWM::allocateTimer(3);
 
@@ -350,7 +302,7 @@ void setup() {
   servo1.attach(SERVO1_PIN, 1000, 2000);
   servo2.attach(SERVO2_PIN, 1000, 2000);
   servo3.attach(SERVO3_PIN, 1000, 2000);
-  servo4.attach(SERVO4_PIN, 1000, 2000);
+  servo4.attach(SERVO4_PIN, 500, 2500);
 
   servo1.write(curr_servo1_angle);
   servo2.write(curr_servo2_angle);

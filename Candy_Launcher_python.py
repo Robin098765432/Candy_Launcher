@@ -26,7 +26,7 @@ ESP32_IP = "192.168.0.120"
 CAPTURE_URL = f"http://{ESP32_IP}/capture"
 COMMAND_URL = f"http://{ESP32_IP}/send_command"
 
-gain = 0.025
+gain = 0.2
 
 AIM_TOLERANCE_X = 50
 AIM_TOLERANCE_Y = 50
@@ -38,6 +38,8 @@ SERVO_CHANGE_THRESHOLD = 0.5
 
 last_servo_angles = None
 last_servo_time = 0
+min_servo_angle = 90
+max_servo_angle = 165
 
 stable_frames = 0
 fire_sent = False
@@ -86,7 +88,7 @@ def IK(pitch_deg, roll_deg):
 
     cos_1 = np.clip(cos_1, -1.0, 1.0)
 
-    servo_1_angle = (servo_reference - np.degrees(np.arccos(cos_1)))
+    servo_1_angle = np.clip(servo_reference - np.degrees(np.arccos(cos_1)), min_servo_angle, max_servo_angle)
 
     distance_2 = np.linalg.norm(P2 - Servo2)
 
@@ -94,7 +96,7 @@ def IK(pitch_deg, roll_deg):
 
     cos_2 = np.clip(cos_2, -1.0, 1.0)
 
-    servo_2_angle = (servo_reference - np.degrees(np.arccos(cos_2)))
+    servo_2_angle = np.clip(servo_reference - np.degrees(np.arccos(cos_2)), min_servo_angle, max_servo_angle)
 
     distance_3 = np.linalg.norm(P3 - Servo3)
 
@@ -102,7 +104,7 @@ def IK(pitch_deg, roll_deg):
 
     cos_3 = np.clip(cos_3, -1.0, 1.0)
 
-    servo_3_angle = (servo_reference - np.degrees(np.arccos(cos_3)))
+    servo_3_angle = np.clip(servo_reference - np.degrees(np.arccos(cos_3)), min_servo_angle, max_servo_angle)
 
     print(f"Servo angles: "f"{servo_1_angle:.2f}, "f"{servo_2_angle:.2f}, "f"{servo_3_angle:.2f}")
 
@@ -113,7 +115,7 @@ def sent_command(command):
 
     try:
 
-        response = requests.post(COMMAND_URL, data=command, timeout=2)
+        response = requests.post(COMMAND_URL, data=command, timeout=4)
 
         result = response.text.strip()
 
@@ -186,7 +188,7 @@ while True:
 
                     time.sleep(0.05)
 
-                    frame = capture_image()
+                    frame = cv2.flip(capture_image(), -1)
 
                     if frame is None:
                         continue
@@ -246,7 +248,7 @@ while True:
 
                             IK_angles = IK(pitch, roll)
 
-                            angles_valid = all(135 <= angle <= 165 for angle in IK_angles)
+                            angles_valid = all(min_servo_angle <= angle <= max_servo_angle for angle in IK_angles)
 
                             if angles_valid:
 
