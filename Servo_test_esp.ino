@@ -41,7 +41,7 @@ void setup() {
   servo2.attach(SERVO2_PIN, 500, 2500);
   servo3.attach(SERVO3_PIN, 500, 2500);
 
-  servo4.attach(SERVO4_PIN, 1000, 2000);
+  servo4.attach(SERVO4_PIN, 500, 2500);
 }
 
 void loop() {

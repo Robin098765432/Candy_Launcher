@@ -4,8 +4,8 @@
 #include <ESP32Servo.h>
 #include "board_config.h"
 
-const char* ssid = "ssid";
-const char* password = "password";
+const char* ssid = "Jojanneke en Linda 2";
+const char* password = "C00kiemonster!!";
 
 Servo servo1;
 Servo servo2;
