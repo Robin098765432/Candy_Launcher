@@ -102,8 +102,7 @@ The sketch also expects a `board_config.h` file for the camera pin definitions.
 9. DONE!!
 
 ## Wiring
-<img width="3000" height="2962" alt="image" src="https://github.com/user-attachments/assets/d0a2ead6-dedc-4f02-b58e-310175e25ed6" />
-
+<img width="3000" height="2962" alt="Candy_launcher wiring diagram" src="https://github.com/user-attachments/assets/12871106-be5c-4fb6-a338-fbf20ce46f98" />
 
 
 
